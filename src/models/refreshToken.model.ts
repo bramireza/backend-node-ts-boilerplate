@@ -27,7 +27,7 @@ export class RefreshToken extends TimeStamps {
   static async findRefreshTokenByToken(
     token: string
   ): Promise<DocumentType<RefreshToken> | null> {
-    return await RefreshTokenModel.findOne({ token });
+    return await RefreshTokenModel.findOne({ token, revoked: false });
   }
 }
 

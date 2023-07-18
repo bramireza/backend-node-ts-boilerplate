@@ -6,11 +6,17 @@ import { DocumentType, mongoose } from "@typegoose/typegoose";
 const { JWT } = config;
 interface IToken {
   _id: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  name: string;
 }
 
-export const verifyToken = async (token: string): Promise<IToken> => {
-  const decoded = <IToken>jwt.verify(token, JWT.ACCESS_TOKEN.SECRET);
+export const verifyToken = async (
+  token: string,
+  isRefreshToken: boolean
+): Promise<IToken> => {
+  const secret = isRefreshToken
+    ? JWT.REFRESH_TOKEN.SECRET
+    : JWT.ACCESS_TOKEN.SECRET;
+  const decoded = <IToken>jwt.verify(token, secret);
   return decoded;
 };
 
@@ -36,7 +42,7 @@ export const createTokens = (
 } => {
   const dataToken: IToken = {
     _id: user._id,
-    userId: user._id,
+    name: user.firstName,
   };
   const accessToken = generateToken(dataToken, false);
   const refreshToken = generateToken(dataToken, true);

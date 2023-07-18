@@ -9,6 +9,7 @@ import {
   createTokens,
   failureResponse,
   successResponse,
+  verifyToken,
 } from "../utils";
 
 const authClient: Auth.OAuth2Client = new google.auth.OAuth2(
@@ -62,9 +63,13 @@ export const callbackAuthGoogle = async (
 
       if (userUpdate) {
         const { accessToken, refreshToken } = createTokens(userUpdate);
+        await RefreshTokenModel.create({
+          token: refreshToken,
+          user: userUpdate._id,
+        });
         return successResponse({
           res,
-          data: { user: isFoundUser, accessToken, refreshToken },
+          data: { user: userUpdate, accessToken, refreshToken },
         });
       }
     }
@@ -73,6 +78,10 @@ export const callbackAuthGoogle = async (
     const userSaved = await user.save();
 
     const { accessToken, refreshToken } = createTokens(userSaved);
+    await RefreshTokenModel.create({
+      token: refreshToken,
+      user: userSaved._id,
+    });
     return successResponse({
       res,
       data: { user: userSaved, accessToken, refreshToken },
@@ -121,6 +130,11 @@ export const signIn = async (
     }
     const { accessToken, refreshToken } = createTokens(user);
     await RefreshTokenModel.create({ token: refreshToken, user: user._id });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      maxAge: 1 * 60 * 60 * 1000, // 1hr in ms
+    });
 
     return successResponse({ res, data: { user, accessToken, refreshToken } });
   } catch (error) {
@@ -193,7 +207,6 @@ export const refreshToken = async (
 
     await RefreshTokenModel.revokeTokenById(savedRefreshToken.id);
     const { accessToken, refreshToken: newRefreshToken } = createTokens(user);
-
     await RefreshTokenModel.create({ user: user._id, token: newRefreshToken });
 
     return successResponse({
@@ -215,16 +228,33 @@ export const revokeRefreshTokens = async (
       return failureResponse({
         res,
         status: 400,
-        message: "MISSING_USER",
+        message: "MISSING_USER_ID",
       });
     }
     await RefreshTokenModel.revokeAllTokensByUserId(userId);
 
     return successResponse({
       res,
-      data: `Tokens revoked for user with id #${userId}`,
+      message: `Tokens revoked for user with id #${userId}`,
     });
   } catch (error) {
     return failureResponse({ res });
   }
+};
+
+export const me = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { accessToken } = req.cookies;
+    const decodedToken = await verifyToken(accessToken, false);
+    const user = await UserModel.findById(decodedToken._id);
+
+    return successResponse({ res, data: { user } });
+  } catch (error) {
+    return failureResponse({ res });
+  }
+};
+
+export const logout = (_req: Request, res: Response): Response => {
+  res.clearCookie("accessToken");
+  return successResponse({ res, message: "Successfully Logout" });
 };

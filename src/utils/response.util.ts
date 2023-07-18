@@ -12,11 +12,12 @@ export function successResponse({
   res,
   status = 200,
   data,
+  message,
 }: IResponse): Response {
   if (data) {
     return res.status(status).json({ success: true, ...data });
   } else {
-    return failureResponse({ res, status, message: "NOT_FOUND_DATA" });
+    return res.status(status).json({ success: true, message });
   }
 }
 
