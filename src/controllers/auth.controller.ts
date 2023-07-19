@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import { google, Auth } from "googleapis";
 import { config } from "../configs";
-import { RefreshTokenModel, User, UserModel } from "../models";
+import {
+  RefreshTokenModel,
+  User,
+  UserModel,
+  BlackListTokenModel,
+} from "../models";
 import { validatePassword } from "../helpers";
 import {
   setTokensAuthGoogle,
@@ -209,6 +214,11 @@ export const refreshToken = async (
     const { accessToken, refreshToken: newRefreshToken } = createTokens(user);
     await RefreshTokenModel.create({ user: user._id, token: newRefreshToken });
 
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      maxAge: 1 * 60 * 60 * 1000, // 1hr in ms
+    });
+
     return successResponse({
       res,
       data: { user, accessToken, refreshToken: newRefreshToken },
@@ -254,7 +264,18 @@ export const me = async (req: Request, res: Response): Promise<Response> => {
   }
 };
 
-export const logout = (_req: Request, res: Response): Response => {
-  res.clearCookie("accessToken");
-  return successResponse({ res, message: "Successfully Logout" });
+export const logout = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { accessToken } = req.cookies;
+    if (accessToken) {
+      await BlackListTokenModel.create({ token: accessToken });
+      res.clearCookie("accessToken");
+    }
+    return successResponse({ res, message: "Logout Successfully" });
+  } catch (error) {
+    return failureResponse({ res });
+  }
 };

@@ -10,7 +10,12 @@ const app: express.Application = express();
 console.log(config.FRONT_URL);
 
 app.use(morgan("dev"));
-app.use(cors());
+app.use(
+  cors({
+    origin: [config.FRONT_URL], // Lista de orígenes permitidos
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

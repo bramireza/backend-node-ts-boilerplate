@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { UserModel } from "../models";
+import { BlackListTokenModel, UserModel } from "../models";
 import { verifyToken } from "../utils/jwt.util";
 import { TokenExpiredError } from "jsonwebtoken";
 import { failureResponse } from "../utils/response.util";
@@ -24,6 +24,13 @@ export const isAuthenticated = async (
     const accessTokenJWT = authorization.split(" ")[1];
     if (accessTokenJWT !== accessTokenCookie) {
       return failureResponse({ res, status: 403, message: "UNAUTHORIZED" });
+    }
+
+    const isTokenBlackList = await BlackListTokenModel.findOne({
+      token: accessTokenJWT,
+    });
+    if (isTokenBlackList) {
+      return failureResponse({ res, status: 401, message: "UNAUTHORIZED" });
     }
 
     const decodedToken = await verifyToken(accessTokenJWT, false);
