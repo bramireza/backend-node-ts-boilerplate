@@ -272,8 +272,9 @@ export const logout = async (
     const { accessToken } = req.cookies;
     if (accessToken) {
       await BlackListTokenModel.create({ token: accessToken });
-      res.clearCookie("accessToken");
     }
+    res.clearCookie("accessToken");
+
     return successResponse({ res, message: "Logout Successfully" });
   } catch (error) {
     return failureResponse({ res });

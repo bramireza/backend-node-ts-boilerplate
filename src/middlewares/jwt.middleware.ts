@@ -30,7 +30,7 @@ export const isAuthenticated = async (
       token: accessTokenJWT,
     });
     if (isTokenBlackList) {
-      return failureResponse({ res, status: 401, message: "UNAUTHORIZED" });
+      return failureResponse({ res, status: 403, message: "UNAUTHORIZED" });
     }
 
     const decodedToken = await verifyToken(accessTokenJWT, false);
