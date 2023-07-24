@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { BlackListTokenModel, UserModel } from "../models";
-import { verifyToken } from "../utils/jwt.util";
+import { getTokenInHeaders, verifyToken } from "../utils/jwt.util";
 import { TokenExpiredError } from "jsonwebtoken";
 import { failureResponse } from "../utils/response.util";
 
@@ -10,10 +10,9 @@ export const isAuthenticated = async (
   next: NextFunction
 ) => {
   try {
-    const { authorization } = req.headers;
-    const { accessToken: accessTokenCookie } = req.cookies;
+    const accessToken = getTokenInHeaders(req);
 
-    if (!authorization || !accessTokenCookie) {
+    if (!accessToken) {
       return failureResponse({
         res,
         status: 401,
@@ -21,19 +20,14 @@ export const isAuthenticated = async (
       });
     }
 
-    const accessTokenJWT = authorization.split(" ")[1];
-    if (accessTokenJWT !== accessTokenCookie) {
-      return failureResponse({ res, status: 403, message: "UNAUTHORIZED" });
-    }
-
     const isTokenBlackList = await BlackListTokenModel.findOne({
-      token: accessTokenJWT,
+      token: accessToken,
     });
     if (isTokenBlackList) {
       return failureResponse({ res, status: 403, message: "UNAUTHORIZED" });
     }
 
-    const decodedToken = await verifyToken(accessTokenJWT, false);
+    const decodedToken = await verifyToken(accessToken, false);
     if (!decodedToken) {
       return failureResponse({ res, status: 401, message: "UNAUTHORIZED" });
     }

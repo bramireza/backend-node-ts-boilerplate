@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { config } from "../configs";
 import { User } from "../models";
 import { DocumentType, mongoose } from "@typegoose/typegoose";
+import { Request } from "express";
 
 const { JWT } = config;
 interface IToken {
@@ -51,4 +52,16 @@ export const createTokens = (
     accessToken,
     refreshToken,
   };
+};
+
+export const getTokenInHeaders = (req: Request): string | null => {
+  const { authorization } = req.headers;
+  if (!authorization) {
+    return null;
+  }
+  const accessToken = authorization.split(" ")[1];
+  if (!accessToken) {
+    return null;
+  }
+  return accessToken;
 };

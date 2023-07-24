@@ -15,6 +15,7 @@ import {
   failureResponse,
   successResponse,
   verifyToken,
+  getTokenInHeaders,
 } from "../utils";
 
 const authClient: Auth.OAuth2Client = new google.auth.OAuth2(
@@ -136,11 +137,6 @@ export const signIn = async (
     const { accessToken, refreshToken } = createTokens(user);
     await RefreshTokenModel.create({ token: refreshToken, user: user._id });
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      maxAge: 1 * 60 * 60 * 1000, // 1hr in ms
-    });
-
     return successResponse({ res, data: { user, accessToken, refreshToken } });
   } catch (error) {
     return failureResponse({ res });
@@ -214,11 +210,6 @@ export const refreshToken = async (
     const { accessToken, refreshToken: newRefreshToken } = createTokens(user);
     await RefreshTokenModel.create({ user: user._id, token: newRefreshToken });
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      maxAge: 1 * 60 * 60 * 1000, // 1hr in ms
-    });
-
     return successResponse({
       res,
       data: { user, accessToken, refreshToken: newRefreshToken },
@@ -238,7 +229,7 @@ export const revokeRefreshTokens = async (
       return failureResponse({
         res,
         status: 400,
-        message: "MISSING_USER_ID",
+        message: "USER_ID_MISSING_OR_INVALID",
       });
     }
     await RefreshTokenModel.revokeAllTokensByUserId(userId);
@@ -254,10 +245,16 @@ export const revokeRefreshTokens = async (
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { accessToken } = req.cookies;
+    const accessToken = getTokenInHeaders(req);
+    if (!accessToken) {
+      return failureResponse({
+        res,
+        status: 401,
+        message: "TOKEN_MISING_OR_INVALID",
+      });
+    }
     const decodedToken = await verifyToken(accessToken, false);
     const user = await UserModel.findById(decodedToken._id);
-
     return successResponse({ res, data: { user } });
   } catch (error) {
     return failureResponse({ res });
@@ -269,11 +266,11 @@ export const logout = async (
   res: Response
 ): Promise<Response> => {
   try {
-    const { accessToken } = req.cookies;
+    const accessToken = getTokenInHeaders(req);
+
     if (accessToken) {
       await BlackListTokenModel.create({ token: accessToken });
     }
-    res.clearCookie("accessToken");
 
     return successResponse({ res, message: "Logout Successfully" });
   } catch (error) {
