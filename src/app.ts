@@ -27,7 +27,7 @@ app.use((req: Request, res: Response): Response => {
   return failureResponse({
     res,
     status: 404,
-    message: req.originalUrl + " not found",
+    message: `${req.method} -> ${req.originalUrl}  not found`,
   });
 });
 export default app;

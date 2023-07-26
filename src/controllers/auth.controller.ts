@@ -267,9 +267,16 @@ export const logout = async (
 ): Promise<Response> => {
   try {
     const accessToken = getTokenInHeaders(req);
+    const { refreshToken } = req.body;
 
     if (accessToken) {
       await BlackListTokenModel.create({ token: accessToken });
+    }
+    if (refreshToken) {
+      const savedRefreshToken = await RefreshTokenModel.findRefreshTokenByToken(
+        refreshToken
+      );
+      await RefreshTokenModel.revokeTokenById(savedRefreshToken?.id);
     }
 
     return successResponse({ res, message: "Logout Successfully" });
