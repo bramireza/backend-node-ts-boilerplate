@@ -266,8 +266,7 @@ export const logout = async (
   res: Response
 ): Promise<Response> => {
   try {
-    const accessToken = getTokenInHeaders(req);
-    const { refreshToken } = req.body;
+    const { accessToken, refreshToken } = req.body;
 
     if (accessToken) {
       await BlackListTokenModel.create({ token: accessToken });

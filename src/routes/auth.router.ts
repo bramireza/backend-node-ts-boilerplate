@@ -15,6 +15,6 @@ authRouter.post(
   authController.revokeRefreshTokens
 );
 authRouter.get("/me", isAuthenticated, authController.me);
-authRouter.get("/logout", authController.logout);
+authRouter.post("/logout", authController.logout);
 
 export default authRouter;
